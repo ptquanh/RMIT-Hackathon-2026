@@ -19,13 +19,15 @@ Thư mục này chứa toàn bộ tài nguyên huấn luyện và nộp bài cho
    - Vào [Kaggle Code](https://www.kaggle.com/code) -> Click **New Notebook**.
    - Chọn File -> **Upload Notebook** -> Chọn file [`multilingual_prompt_attack_classification.ipynb`](file:///d:/PARA%20Method/Project/RMIT-Hackathon-2026/Tai/multilingual_prompt_attack_classification.ipynb).
 
-2. **Thêm Dataset:**
-   - Ở thanh công cụ bên phải, click **Add Input** -> Search: `dangthtai/rmit-hackathon-2026-dataset`.
-   - Notebook được viết kèm hàm tìm kiếm đường dẫn thông minh (`locate_dataset_files`), tự động nhận diện dữ liệu trong `/kaggle/input/rmit-hackathon-2026-dataset`.
+2. **Thêm Dataset & Model:**
+   - **Thêm Dataset:** Ở thanh công cụ bên phải, click **Add Input** -> Search: `dangthtai/rmit-hackathon-2026-dataset`.
+   - **Thêm Model:** Click **Add Input** -> Chọn tab **Models** -> Search `aisuko/xlm-roberta-base` -> Chọn framework **Transformers**, variation **default** -> Click **Add Model**.
+   - Kaggle sẽ gắn model tại: `/kaggle/input/models/aisuko/xlm-roberta-base/transformers/default/1`.
+   - Notebook được cấu hình nạp trực tiếp Tokenizer và Model từ đường dẫn này, hoàn toàn không cần tải lại từ internet!
 
 3. **Cấu hình phần cứng (Notebook Settings):**
    - **Accelerator:** GPU P100 hoặc GPU T4 x2.
-   - **Internet:** On (để tự động tải backbone `FacebookAI/xlm-roberta-base`). Nếu chạy Offline, notebook hỗ trợ nhận diện model nếu bạn add model weights vào Kaggle Input.
+   - **Internet:** Có thể để Off hoặc On (do model và data đều đã có sẵn cục bộ).
    - **Persistence:** No persistence hoặc Variables only.
 
 4. **Chạy toàn bộ (Run All):**
