@@ -10,28 +10,8 @@ notebook = {
             "name": "python3"
         },
         "language_info": {
-            "codemirror_mode": {
-                "name": "ipython",
-                "version": 3
-            },
-            "file_extension": ".py",
-            "mimetype": "text/x-python",
             "name": "python",
-            "nbconvert_exporter": "python",
-            "pygments_lexer": "ipython3",
             "version": "3.10.12"
-        },
-        "kaggle": {
-            "accelerator": "gpu",
-            "dataSources": [
-                {
-                    "sourceId": "rmit-hackathon-2026-dataset",
-                    "sourceType": "datasetVersion"
-                }
-            ],
-            "isGpuEnabled": True,
-            "isInternetEnabled": True,
-            "language": "python"
         }
     },
     "nbformat": 4,
@@ -42,7 +22,7 @@ def add_md(text):
     notebook["cells"].append({
         "cell_type": "markdown",
         "metadata": {},
-        "source": [line + "\n" for line in text.strip().split("\n")]
+        "source": text.strip().splitlines(keepends=True)
     })
 
 def add_code(text):
@@ -51,7 +31,7 @@ def add_code(text):
         "execution_count": None,
         "metadata": {},
         "outputs": [],
-        "source": [line + "\n" for line in text.strip().split("\n")]
+        "source": text.strip().splitlines(keepends=True)
     })
 
 # --- CELL 1: Header & Plan ---
@@ -60,7 +40,8 @@ add_md("""# 🛡️ RMIT Hackathon 2026: Multilingual Prompt-Attack Classificati
 
 - **Author / Team:** Tai (@Tai)
 - **Dataset:** `dangthtai/rmit-hackathon-2026-dataset` (`/kaggle/input/rmit-hackathon-2026-dataset`)
-- **Backbone Model:** `FacebookAI/xlm-roberta-base`
+- **Backbone Model:** `/kaggle/input/models/aisuko/xlm-roberta-base/transformers/default/1`
+  (Kaggle Model: `https://www.kaggle.com/models/aisuko/xlm-roberta-base/Transformers/default`)
 - **Evaluation Metric:** **Macro-F1** (Kaggle Leaderboard)
 - **Target Classes:** `BENIGN`, `JAILBREAK`, `PROMPT_INJECTION`
 
@@ -164,8 +145,8 @@ class Config:
     SUBMISSION_PATH = "/kaggle/working/submission.csv"
     LOCAL_SUBMISSION_PATH = "./submission.csv"
     
-    # Model Architecture
-    MODEL_NAME = "FacebookAI/xlm-roberta-base"
+    # Model Path from Kaggle: https://www.kaggle.com/models/aisuko/xlm-roberta-base/Transformers/default
+    MODEL_PATH = "/kaggle/input/models/aisuko/xlm-roberta-base/transformers/default/1"
     
     # Label Definitions
     LABELS = ["BENIGN", "JAILBREAK", "PROMPT_INJECTION"]
@@ -187,8 +168,33 @@ class Config:
     # Validation
     VAL_SIZE = 0.20          # 80% Train, 20% Validation
 
+def verify_model_path():
+    """
+    Kiểm tra đường dẫn model Kaggle đã cấu hình:
+    Ưu tiên tuyệt đối: /kaggle/input/models/aisuko/xlm-roberta-base/transformers/default/1
+    """
+    target = Config.MODEL_PATH
+    if os.path.exists(target):
+        print(f"✅ Đã tìm thấy mô hình tại: {target}")
+        return target
+    
+    # Fallback dự phòng nếu mount hơi khác hoặc chạy test offline
+    fallback_candidates = [
+        "/kaggle/input/xlm-roberta-base/transformers/default/1",
+        "/kaggle/input/xlm-roberta-base/transformers/default",
+        "/kaggle/input/models/aisuko/xlm-roberta-base/transformers/default",
+        "/kaggle/input/xlm-roberta-base",
+        "FacebookAI/xlm-roberta-base"
+    ]
+    for p in fallback_candidates:
+        if os.path.exists(p) or p.startswith("FacebookAI"):
+            print(f"⚠️ Không thấy '{target}', tự động chuyển sang đường dẫn khả dụng: {p}")
+            return p
+    return target
+
+Config.MODEL_PATH = verify_model_path()
 seed_everything(Config.SEED)
-print("Configuration loaded & Seed set to 42.")
+print(f"Configuration loaded & Model path: {Config.MODEL_PATH}")
 ''')
 
 # --- CELL 4: Smart Data Finder & Loader ---
@@ -365,8 +371,8 @@ train_dups = train_df.duplicated(subset=[TEXT_COL]).sum()
 print(f"\\nTrùng lặp text trong tập Train: {train_dups} mẫu ({train_dups/len(train_df)*100:.2f}%)")
 
 # 3. Phân tích độ dài token bằng Tokenizer của XLM-RoBERTa
-print(f"\\nĐang tải XLM-RoBERTa Tokenizer ({Config.MODEL_NAME})...")
-tokenizer = AutoTokenizer.from_pretrained(Config.MODEL_NAME)
+print(f"\\nĐang tải XLM-RoBERTa Tokenizer từ: {Config.MODEL_PATH}...")
+tokenizer = AutoTokenizer.from_pretrained(Config.MODEL_PATH)
 
 sample_texts = train_df[TEXT_COL].dropna().tolist()
 token_lens = [len(tokenizer.encode(str(t), truncation=False)) for t in sample_texts[:3000]] # lấy mẫu 3000
@@ -498,10 +504,18 @@ for idx, name in Config.ID2LABEL.items():
 # Custom HuggingFace Trainer kế thừa để tùy chỉnh Weighted Cross-Entropy Loss
 class WeightedTrainer(Trainer):
     def __init__(self, class_weights=None, *args, **kwargs):
+        # Tự động chuyển đổi tokenizer <-> processing_class tùy phiên bản Transformers (v4 vs v5)
+        import inspect
+        trainer_params = inspect.signature(Trainer.__init__).parameters
+        if "tokenizer" in kwargs and "processing_class" in trainer_params and "tokenizer" not in trainer_params:
+            kwargs["processing_class"] = kwargs.pop("tokenizer")
+        elif "processing_class" in kwargs and "tokenizer" in trainer_params and "processing_class" not in trainer_params:
+            kwargs["tokenizer"] = kwargs.pop("processing_class")
+            
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
 
-    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None, **kwargs):
         labels = inputs.get("labels")
         outputs = model(**inputs)
         logits = outputs.get("logits")
@@ -597,66 +611,85 @@ def compute_metrics(eval_pred):
 add_code('''# ==============================================================================
 # 11. INITIALIZE MODEL & TRAINING ARGUMENTS
 # ==============================================================================
-def get_model_path(base_name=Config.MODEL_NAME):
-    """
-    Hỗ trợ cả chế độ Online (tải từ HF Hub) và Offline (từ Kaggle Input)
-    """
-    offline_candidates = [
-        f"/kaggle/input/{base_name.split('/')[-1]}",
-        f"/kaggle/input/{base_name.replace('/', '-')}",
-        "/kaggle/input/xlm-roberta-base",
-        "/kaggle/input/facebookai-xlm-roberta-base"
-    ]
-    for p in offline_candidates:
-        if os.path.exists(p) and (os.path.exists(os.path.join(p, "config.json")) or os.path.exists(os.path.join(p, "model.safetensors"))):
-            print(f"Found offline model weights at: {p}")
-            return p
-    print(f"Using Hugging Face Hub model: {base_name}")
-    return base_name
-
-model_path = get_model_path(Config.MODEL_NAME)
-
-print(f"Loading sequence classification model from {model_path}...")
+print(f"Loading sequence classification model from: {Config.MODEL_PATH}...")
 model = AutoModelForSequenceClassification.from_pretrained(
-    model_path,
+    Config.MODEL_PATH,
     num_labels=Config.NUM_LABELS,
     id2label=Config.ID2LABEL,
     label2id=Config.LABEL2ID
 )
 
-# Training Arguments
-training_args = TrainingArguments(
-    output_dir=Config.OUTPUT_DIR,
-    evaluation_strategy="epoch",
-    save_strategy="epoch",
-    learning_rate=Config.LEARNING_RATE,
-    per_device_train_batch_size=Config.BATCH_SIZE,
-    per_device_eval_batch_size=Config.EVAL_BATCH_SIZE,
-    num_train_epochs=Config.NUM_EPOCHS,
-    weight_decay=Config.WEIGHT_DECAY,
-    warmup_ratio=Config.WARMUP_RATIO,
-    load_best_model_at_end=True,
-    metric_for_best_model="macro_f1",
-    greater_is_better=True,
-    fp16=Config.FP16,
-    logging_dir=f"{Config.OUTPUT_DIR}/logs",
-    logging_steps=50,
-    save_total_limit=2,
-    seed=Config.SEED,
-    report_to="none"
-)
+# Training Arguments (Tương thích tự động 100% với cả Transformers v4.x và v5.x)
+import inspect
+sig = inspect.signature(TrainingArguments.__init__)
+valid_params = sig.parameters
+
+training_args_dict = {
+    "output_dir": Config.OUTPUT_DIR,
+    "learning_rate": Config.LEARNING_RATE,
+    "per_device_train_batch_size": Config.BATCH_SIZE,
+    "per_device_eval_batch_size": Config.EVAL_BATCH_SIZE,
+    "num_train_epochs": Config.NUM_EPOCHS,
+    "weight_decay": Config.WEIGHT_DECAY,
+    "logging_steps": 50,
+    "save_total_limit": 2,
+    "seed": Config.SEED,
+    "report_to": "none"
+}
+
+# 1. Evaluation Strategy
+if "eval_strategy" in valid_params:
+    training_args_dict["eval_strategy"] = "epoch"
+elif "evaluation_strategy" in valid_params:
+    training_args_dict["evaluation_strategy"] = "epoch"
+
+# 2. Save Strategy
+if "save_strategy" in valid_params:
+    training_args_dict["save_strategy"] = "epoch"
+
+# 3. Warmup (Transformers v5 bỏ warmup_ratio, thay bằng warmup_steps hỗ trợ float < 1.0)
+if "warmup_ratio" in valid_params:
+    training_args_dict["warmup_ratio"] = Config.WARMUP_RATIO
+elif "warmup_steps" in valid_params:
+    training_args_dict["warmup_steps"] = Config.WARMUP_RATIO
+
+# 4. FP16 Mixed Precision
+if "fp16" in valid_params:
+    training_args_dict["fp16"] = Config.FP16
+
+# 5. Best checkpoint selection
+if "load_best_model_at_end" in valid_params:
+    training_args_dict["load_best_model_at_end"] = True
+if "metric_for_best_model" in valid_params:
+    training_args_dict["metric_for_best_model"] = "macro_f1"
+if "greater_is_better" in valid_params:
+    training_args_dict["greater_is_better"] = True
+
+# 6. Logging directory (chỉ truyền nếu phiên bản transformers hỗ trợ)
+if "logging_dir" in valid_params:
+    training_args_dict["logging_dir"] = f"{Config.OUTPUT_DIR}/logs"
+
+training_args = TrainingArguments(**training_args_dict)
 
 # Instantiate WeightedTrainer with early stopping
-trainer = WeightedTrainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_hf_dataset,
-    eval_dataset=val_hf_dataset,
-    tokenizer=tokenizer,
-    compute_metrics=compute_metrics,
-    class_weights=weights_tensor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=Config.PATIENCE)]
-)
+trainer_sig = inspect.signature(Trainer.__init__)
+trainer_kwargs = {
+    "model": model,
+    "args": training_args,
+    "train_dataset": train_hf_dataset,
+    "eval_dataset": val_hf_dataset,
+    "compute_metrics": compute_metrics,
+    "class_weights": weights_tensor,
+    "callbacks": [EarlyStoppingCallback(early_stopping_patience=Config.PATIENCE)]
+}
+
+# Tương thích với cả Transformers v5 (processing_class) lẫn Transformers v4 (tokenizer)
+if "processing_class" in trainer_sig.parameters:
+    trainer_kwargs["processing_class"] = tokenizer
+elif "tokenizer" in trainer_sig.parameters:
+    trainer_kwargs["tokenizer"] = tokenizer
+
+trainer = WeightedTrainer(**trainer_kwargs)
 
 print("Trainer initialized successfully and ready for training!")
 ''')
