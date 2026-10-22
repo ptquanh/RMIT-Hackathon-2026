@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "tide": {
+      "serverUrl": "https://mcp.tide.org/mcp"
+    }
+  }
+}
