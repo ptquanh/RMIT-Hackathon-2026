@@ -19,11 +19,12 @@
 
 Tất cả các tài liệu ghi chú chi tiết về cuộc thi được lưu trữ trong thư mục `docs/`:
 
-| Tài liệu                                                                                                                                   | Nội dung chính                                                                                                                  |
-| :----------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| 📄 [docs/01_overview.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/docs/01_overview.md)                       | Thể lệ cuộc thi, quy chuẩn đặt tên notebook/kernel, nền tảng, mốc thời gian, tài nguyên hỗ trợ                                  |
-| 📊 [docs/02_data_and_metric.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/docs/02_data_and_metric.md)         | Phân tích tập dữ liệu (`train.csv`, `test.csv`), các nhãn, phân bố mất cân bằng dữ liệu, metric Macro-F1 & định dạng submission |
-| 🤖 [docs/03_models_and_baseline.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/docs/03_models_and_baseline.md) | Danh sách 10 mô hình pretrained được phép sử dụng (Encoder, Safety-tuned, LLM), lưu ý kỹ thuật & phương pháp huấn luyện         |
+| Tài liệu                                                                                                                                               | Nội dung chính                                                                                                                  |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| 🎯 [TOP1_PLAN.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/TOP1_PLAN.md)                                     | **Kế hoạch tác chiến Top-1:** Chiến lược North Star, phân công 4 TV, backlog thí nghiệm ROI, ngân sách 6 lượt submit & rủi ro   |
+| 📄 [docs/01_overview.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/docs/01_overview.md)                       | Thể lệ cuộc thi, quy chuẩn đặt tên notebook/kernel, nền tảng, mốc thời gian, tài nguyên hỗ trợ                                  |
+| 📊 [docs/02_data_and_metric.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/docs/02_data_and_metric.md)         | Phân tích tập dữ liệu (`train.csv`, `test.csv`), các nhãn, phân bố mất cân bằng dữ liệu, metric Macro-F1 & định dạng submission |
+| 🤖 [docs/03_models_and_baseline.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/docs/03_models_and_baseline.md) | Danh sách 10 mô hình pretrained được phép sử dụng (Encoder, Safety-tuned, LLM), lưu ý kỹ thuật & phương pháp huấn luyện         |
 
 ---
 
