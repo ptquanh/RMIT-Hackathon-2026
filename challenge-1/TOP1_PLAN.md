@@ -148,6 +148,6 @@ _(Lưu ý: Public Leaderboard chỉ là tín hiệu phụ vì toàn đội có �
 
 ### Notebooks & Docs trong Workspace:
 
-- 📓 [notebooks/tony-rmit-sgs-stressnotfound-c1.ipynb](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/notebooks/tony-rmit-sgs-stressnotfound-c1.ipynb) — Ensemble notebook
-- 📓 [Tai/multilingual_prompt_attack_classification.ipynb](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/Tai/multilingual_prompt_attack_classification.ipynb) — XLM-R notebook
-- 📄 [docs/03_models_and_baseline.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/docs/03_models_and_baseline.md) — 10 mô hình được duyệt
+- 📓 [challenge-1/notebooks/tony-rmit-sgs-stressnotfound-c1.ipynb](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/notebooks/tony-rmit-sgs-stressnotfound-c1.ipynb) — Ensemble notebook
+- 📓 [challenge-1/Tai/multilingual_prompt_attack_classification.ipynb](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/Tai/multilingual_prompt_attack_classification.ipynb) — XLM-R notebook
+- 📄 [challenge-1/docs/03_models_and_baseline.md](file:///d:/CODE%20PLAYGROUND/Projects/Competitions/RMIT-Hackathon-2026/challenge-1/docs/03_models_and_baseline.md) — 10 mô hình được duyệt
