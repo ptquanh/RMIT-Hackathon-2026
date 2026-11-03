@@ -1,0 +1,19 @@
+node_modules/
+.next/
+dist/
+coverage/
+.tide-pack/
+
+# Secrets and local runtime state
+.env
+.env.local
+.env.*.local
+apps/web/data/tidecloak.json
+apps/web/data/keycloakdb*
+apps/web/scripts/.skycloak-api-key
+
+# Logs and editor state
+*.log
+.DS_Store
+.idea/
+.vscode/

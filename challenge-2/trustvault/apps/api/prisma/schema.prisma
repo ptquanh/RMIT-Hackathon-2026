@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FundingCategory {
+  MEDICAL
+  TUITION
+  HOUSING
+}
+
+enum RequestStatus {
+  DRAFT
+  PENDING_REVIEW
+  READY_TO_AUTHORIZE
+  AUTHORIZED
+  SETTLED
+  REJECTED
+  EXPIRED
+}
+
+model Organization {
+  id            String         @id
+  name          String
+  contributions Contribution[]
+  approvals     Approval[]
+}
+
+model Vault {
+  id            String           @id
+  name          String
+  purpose       String
+  currency      String           @default("VND")
+  policyVersion String           @default("1")
+  contributions Contribution[]
+  requests      FundingRequest[]
+}
+
+model Contribution {
+  id                              String            @id
+  vaultId                         String
+  donorOrgId                      String
+  label                           String
+  originalAmount                  BigInt
+  availableAmount                 BigInt
+  maxPerRequestAmount             BigInt?
+  reservedAmount                  BigInt            @default(0)
+  spentAmount                     BigInt            @default(0)
+  allowedCategories               FundingCategory[]
+  requiresIndependentVerification Boolean           @default(false)
+  deadlineAt                      DateTime?
+  conditionsHash                  String
+  createdAt                       DateTime           @default(now())
+  vault                           Vault              @relation(fields: [vaultId], references: [id])
+  donorOrg                        Organization       @relation(fields: [donorOrgId], references: [id])
+  allocations                     Allocation[]
+}
+
+model FundingRequest {
+  id                   String          @id
+  vaultId              String
+  beneficiaryRef       String
+  category             FundingCategory
+  amount               BigInt
+  recipientRef         String
+  status               RequestStatus   @default(DRAFT)
+  canonicalPayload     String?
+  canonicalPayloadHash String?
+  nonce                 String          @unique
+  expiresAt             DateTime
+  policyVersion         String          @default("1")
+  verificationComplete Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  vault                 Vault           @relation(fields: [vaultId], references: [id])
+  allocations           Allocation[]
+  approvals             Approval[]
+  settlement            Settlement?
+  auditEvents           AuditEvent[]
+}
+
+model Allocation {
+  id               String         @id @default(cuid())
+  fundingRequestId String
+  contributionId   String
+  amount           BigInt
+  fundingRequest   FundingRequest @relation(fields: [fundingRequestId], references: [id], onDelete: Cascade)
+  contribution     Contribution   @relation(fields: [contributionId], references: [id])
+
+  @@unique([fundingRequestId, contributionId])
+}
+
+model Approval {
+  id               String         @id @default(cuid())
+  fundingRequestId String
+  signerId         String
+  signerOrgId      String
+  payloadHash      String
+  decision         String
+  approvedAt       DateTime       @default(now())
+  fundingRequest   FundingRequest @relation(fields: [fundingRequestId], references: [id], onDelete: Cascade)
+  signerOrg        Organization   @relation(fields: [signerOrgId], references: [id])
+
+  @@unique([fundingRequestId, signerId])
+}
+
+model Settlement {
+  id               String         @id @default(cuid())
+  fundingRequestId String         @unique
+  idempotencyKey   String         @unique
+  receiptId        String         @unique
+  mode             String
+  createdAt        DateTime       @default(now())
+  fundingRequest   FundingRequest @relation(fields: [fundingRequestId], references: [id])
+}
+
+model AuditEvent {
+  id               String          @id @default(cuid())
+  fundingRequestId String?
+  actorId          String
+  action           String
+  metadata         Json
+  createdAt        DateTime        @default(now())
+  fundingRequest   FundingRequest? @relation(fields: [fundingRequestId], references: [id], onDelete: Cascade)
+}
